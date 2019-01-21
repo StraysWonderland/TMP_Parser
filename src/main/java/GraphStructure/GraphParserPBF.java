@@ -1,0 +1,230 @@
+package GraphStructure;
+
+import Data.AmenityHandling;
+import Data.FilePaths;
+import Data.HighwayHandling;
+import Util.Distance;
+import Util.PathTypes;
+import de.topobyte.osm4j.core.access.OsmIterator;
+import de.topobyte.osm4j.core.model.iface.EntityContainer;
+import de.topobyte.osm4j.core.model.iface.EntityType;
+import de.topobyte.osm4j.core.model.iface.OsmNode;
+import de.topobyte.osm4j.core.model.iface.OsmWay;
+import de.topobyte.osm4j.core.model.util.OsmModelUtil;
+import de.topobyte.osm4j.pbf.seq.PbfIterator;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static GraphStructure.GraphWriter.WriteToLineFile;
+
+public class GraphParserPBF {
+    //TODO: change to germany when needed
+    private final String pbfPath = FilePaths.targetPBF;
+    private final String binaryPathNodes = FilePaths.binBWNodes;
+    private final String binaryPathEdges = FilePaths.binBWEdges;
+    private final String binaryPathOffsets = FilePaths.binBWOffsets;
+    private final String binaryPathAmenities = FilePaths.binBWAmenities;
+
+    private PbfIterator iterator;
+    private InputStream stream;
+
+    private HashMap<Long, double[]> nodeLookup;
+    private double[][] nodes;
+    private int[][] edges;
+    private int wayCount = 0;
+    private int nodeCount = 0;
+
+    private List<String[]> amenities = new ArrayList<>();
+    private List<double[]> amenityLatLon = new ArrayList<>();
+
+    public GraphParserPBF() {
+        nodeLookup = new HashMap<>();
+    }
+
+    public void parseFromPbf() {
+        try {
+
+            System.out.println("Started Parsing");
+
+            stream = new FileInputStream(pbfPath);
+            retrieveRelevantNodes();
+            System.out.println("Looked up relevant nodes");
+
+            stream = new FileInputStream(pbfPath);
+            retrieveDataForNodes();
+            System.out.println("Added geo coordinates");
+
+            stream = new FileInputStream(pbfPath);
+            localiseAndSortNodes();
+            System.out.println("localised nodes");
+
+            stream = new FileInputStream(pbfPath);
+            retrieveEdgesBetweenNodes();
+            sortEdges();
+            System.out.println("retrieved edges between all relevant nodes");
+
+
+            WriteToLineFile(edges, nodes, binaryPathNodes, binaryPathEdges);
+            GraphWriter.WriteAmenitiesToLineFile(amenities, amenityLatLon, binaryPathAmenities);
+            System.out.println("graph serialized");
+
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            System.out.println("File could not be found!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            // stream.close();
+            System.out.println(String.format("nodes: %-15s edges: %-15s",
+                    nodeCount,
+                    wayCount
+            ));
+        }
+    }
+
+    private void correctedIterativeParse(){
+
+    }
+
+    public void retrieveRelevantNodes() {
+        iterator = new PbfIterator(stream, false);
+        for (EntityContainer container : iterator) {
+            if (container.getType() == EntityType.Way) {
+                OsmWay currentEdge = (OsmWay) container.getEntity();
+                if (HighwayHandling.isHighway(OsmModelUtil.getTagsAsMap(currentEdge).get("highway"))) {
+                    wayCount++;
+                    nodeCount += (2 * currentEdge.getNumberOfNodes()) - 2;
+                    for (int i = 0; i < currentEdge.getNumberOfNodes(); i++) {
+                        nodeLookup.put(currentEdge.getNodeId(i), new double[]{});
+                    }
+                }
+            }
+        }
+    }
+
+    private void retrieveDataForNodes() {
+        iterator = new PbfIterator(stream, false);
+        for (EntityContainer container : iterator) {
+            if (container.getType() == EntityType.Node) {
+                OsmNode osmNode = (OsmNode) container.getEntity();
+                if (nodeLookup.containsKey(osmNode.getId())) {
+
+                    double[] nodeData = new double[]{
+                            (double) osmNode.getId(),
+                            osmNode.getLatitude(),
+                            osmNode.getLongitude(),
+                    };
+                    nodeLookup.put(osmNode.getId(), nodeData);
+                }
+            }
+        }
+    }
+
+    private void localiseAndSortNodes() {
+        nodes = new double[3][nodeCount];
+        List<double[]> nodeList = new ArrayList<>(nodeLookup.values());
+        nodeList.sort((a, b) -> (Double.compare(a[0], b[0])));
+        for (int i = 0; i < nodeList.size(); i++) {
+            nodes[0][i] = nodeList.get(i)[1];   // latitude
+            nodes[1][i] = nodeList.get(i)[2];   // longitude
+            // store id-mapping in lookup-table
+            nodeLookup.put((long) nodeList.get(i)[0],
+                    new double[]{
+                            (double) i, // serves as localId
+                            (double) 0,
+                            (double) 0
+                    });
+        }
+        nodeList.clear();
+    }
+
+    private void retrieveEdgesBetweenNodes() {
+        edges = new int[5][wayCount];
+        iterator = new PbfIterator(stream, false);
+        for (EntityContainer container : iterator) {
+            if (container.getType() == EntityType.Way) {
+                OsmWay currentWay = (OsmWay) container.getEntity();
+                if (HighwayHandling.isHighway(OsmModelUtil.getTagsAsMap(currentWay).get("highway"))) {
+                    for (int i = 0; i < currentWay.getNumberOfNodes(); i++) {
+                        convertToEdgeStructure(currentWay);
+                    }
+                }
+            }
+        }
+    }
+
+    private void convertToEdgeStructure(OsmWay way) {
+        for (int i = 0; i < way.getNumberOfNodes() - 1; i++) {
+            double[] node1 = nodeLookup.get(way.getNodeId(i));
+            double[] node2 = nodeLookup.get(way.getNodeId(i + 1));
+            float[] edgeType = PathTypes.getMaxSpeed(way);
+
+            edges[0][i] = (int) node1[0]; // starting node
+            edges[1][i] = (int) node2[0]; // target node
+            edges[2][i] = (int) Distance.euclideanDistance(node1[1], node1[2], node2[1], node2[2]); //distance
+            edges[3][i] = (int) edgeType[0];
+            edges[4][i] = (int) edgeType[1];
+
+            if (!PathTypes.isOneWay(way)) {
+                convertToReverseEdges(way);
+            }
+        }
+    }
+
+    private void convertToReverseEdges(OsmWay way) {
+        for (int i = way.getNumberOfNodes() - 1; i > 0; i--) {
+            double[] node1 = nodeLookup.get(way.getNodeId(i));
+            double[] node2 = nodeLookup.get(way.getNodeId(i + 1));
+            float[] edgeType = PathTypes.getMaxSpeed(way);
+
+            edges[0][i] = (int) node1[0];
+            edges[1][i] = (int) node2[0];
+            edges[2][i] = (int) Distance.euclideanDistance(node1[1], node1[2], node2[1], node2[2]);
+            edges[3][i] = (int) edgeType[0];
+            edges[4][i] = (int) edgeType[1];
+        }
+    }
+
+    private void sortEdges() {
+        java.util.Arrays.sort(edges, (a, b) -> (Integer.compare(a[0], b[0])));
+    }
+
+    public void retrieveAmenityPOIs() throws FileNotFoundException {
+        InputStream input = new FileInputStream(pbfPath);
+        OsmIterator iterator = new PbfIterator(input, true);
+        for (EntityContainer container : iterator) {
+            if (container.getType() == EntityType.Node) {
+                OsmNode node = (OsmNode) container.getEntity();
+                Map<String, String> tags = OsmModelUtil.getTagsAsMap(node);
+                String amenityTag = tags.get("amenity");
+                if (AmenityHandling.isAmenity(amenityTag)) {
+                    String[] s = new String[2];
+                    s[0] = tags.get("name");
+                    s[1] = amenityTag;
+                    amenities.add(s);
+                    amenityLatLon.add(new double[]{
+                            node.getLatitude(),
+                            node.getLongitude()
+                    });
+
+                    System.out.println(String.format("%-15s %-15f %-15f %-40s %-20s",
+                            node.getId(),
+                            node.getLatitude(),
+                            node.getLongitude(),
+                            s[0],
+                            s[1]
+                    ));
+                }
+            }
+        }
+    }
+
+}
