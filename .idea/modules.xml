@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/TravellingMisanthropistProblem.iml" filepath="$PROJECT_DIR$/.idea/modules/TravellingMisanthropistProblem.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/TravellingMisanthropistProblem_main.iml" filepath="$PROJECT_DIR$/.idea/modules/TravellingMisanthropistProblem_main.iml" group="TravellingMisanthropistProblem" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/TravellingMisanthropistProblem_test.iml" filepath="$PROJECT_DIR$/.idea/modules/TravellingMisanthropistProblem_test.iml" group="TravellingMisanthropistProblem" />
     </modules>
   </component>
 </project>
