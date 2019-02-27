@@ -1,6 +1,7 @@
 package Data;
 
 import DTO.Highway;
+import de.topobyte.osm4j.core.model.iface.OsmWay;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -42,5 +43,16 @@ public class HighwayHandling {
             return false;
 
         return Arrays.stream(Highway.values()).anyMatch(x -> x.getName().equals(currentType));
+    }
+
+    public static boolean isOneWay(OsmWay osmWay) {
+        boolean oneWay = false;
+        for (int j = 0; j < osmWay.getNumberOfTags(); j++) {
+            oneWay = ((osmWay.getTag(j).getKey().equals("oneway")
+                    && osmWay.getTag(j).getValue().equals("yes"))
+                    || osmWay.getTag(j).getKey().equals("motorway")
+                    || osmWay.getTag(j).getKey().equals("motorway_link")) || oneWay;
+        }
+        return oneWay;
     }
 }

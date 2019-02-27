@@ -1,15 +1,22 @@
 import GraphStructure.GraphParserPBF;
+import GraphStructure.PBFParser;
+import GraphStructure.ParserAY;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 
 public class Main {
 
     public static void main(String[] args) {
-        GraphParserPBF graphParserPBF = new GraphParserPBF();
+       // GraphParserPBF graphParserPBF = new GraphParserPBF();
+       // PBFParser parser = new PBFParser();
+
+       // graphParserPBF.parseFromPbf();
+
+
         try {
-            graphParserPBF.parseFromPbf();
-            graphParserPBF.retrieveAmenityPOIs();
-        } catch (FileNotFoundException e) {
+            ParserAY parserAY = new ParserAY();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

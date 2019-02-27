@@ -1,12 +1,31 @@
 group 'com.StraysWonderland'
 version '1.0-SNAPSHOT'
 
+
+
 apply plugin: 'java'
 apply plugin: 'java-library-distribution'
 
 sourceCompatibility = 1.8
+buildscript {
 
+    ext {
+        springBootVersion = '2.0.0.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
 
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.StrayWonderland.Main'
+    }
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
 
 repositories {
     mavenCentral()
@@ -20,18 +39,6 @@ dependencies {
     compile 'de.topobyte:osm4j-pbf:0.0.10'
     compile 'de.topobyte:osm4j-tbo:0.0.10'
     compile 'de.topobyte:osm4j-geometry:0.0.15'
+    compile 'org.springframework.boot:spring-boot-starter-web:2.0.0.RELEASE'
     testCompile group: 'junit', name: 'junit', version: '4.12'
-}
-distZip.shouldRunAfter(build)
-jar {
-    // Keep jar clean:
-    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.MF'
-
-    manifest {
-        attributes 'Main-Class': 'com.StraysWonderland.Main',
-                'Class-Path': configurations.runtime.files.collect { "lib/$it.name" }.join(' ')
-    }
-    // How-to add class path:
-    //     https://stackoverflow.com/questions/22659463/add-classpath-in-manifest-using-gradle
-    //     https://gist.github.com/simon04/6865179
 }
