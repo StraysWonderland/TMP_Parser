@@ -83,6 +83,11 @@ public class StraysParser {
                     wayNodes = OsmModelUtil.nodesAsList((OsmWay) container.getEntity());
                     wayNodesSize = wayNodes.size();
 
+                    if (!nodeMap.containsKey(wayNodes.get(0))) {
+                        nodeMap.put(wayNodes.get(0), numberNodes);
+                        numberNodes++;
+                    }
+
                     for (int i = 0; i < wayNodesSize; i++) {
                         if (!nodeMap.containsKey(wayNodes.get(i))) {
                             nodeMap.put(wayNodes.get(i), numberNodes);
