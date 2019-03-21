@@ -1,5 +1,4 @@
 
-import GraphStructure.ParserAY;
 import GraphStructure.StraysParser;
 
 import java.io.IOException;
@@ -11,10 +10,15 @@ public class Main {
         graphParserPBF.parseFromPbf();*/
 
        // PBFParser parser = new PBFParser();
+
         String path = "bw.osm.pbf";
+
         try {
+            if(args[0] != null)
+                path = args[0];
+
             StraysParser parser = new StraysParser();
-            parser.parse("target.osm.pbf");
+            parser.parse(path);
         } catch (IOException e) {
             e.printStackTrace();
         }

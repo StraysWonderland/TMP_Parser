@@ -13,14 +13,9 @@ import de.topobyte.osm4j.core.model.iface.OsmWay;
 import de.topobyte.osm4j.core.model.util.OsmModelUtil;
 import de.topobyte.osm4j.pbf.seq.PbfIterator;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 import static GraphStructure.GraphWriter.WriteToLineFile;
 
@@ -71,8 +66,9 @@ public class GraphParserPBF {
             System.out.println("retrieved edges between all relevant nodes");
 
 
-            WriteToLineFile(edges, nodes, binaryPathNodes, binaryPathEdges);
-            GraphWriter.WriteAmenitiesToLineFile(amenities, amenityLatLon, binaryPathAmenities);
+            writeToFile();
+            //WriteToLineFile(edges, nodes, binaryPathNodes, binaryPathEdges);
+            //GraphWriter.WriteAmenitiesToLineFile(amenities, amenityLatLon, binaryPathAmenities);
             System.out.println("graph serialized");
 
 
@@ -226,5 +222,32 @@ public class GraphParserPBF {
             }
         }
     }
+
+    private void writeToFile() throws IOException{
+        String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
+        System.out.println("Writing ...");
+
+
+        // Save data to file
+        PrintWriter writer = new PrintWriter("ressources\\de." + timeStamp + ".nodes",
+                "UTF-8");
+        writer.println(nodes[0].length);
+        for (int i = 0; i < nodes[0].length; i++) {
+            writer.print((int) nodes[0][i] + " ");
+            writer.print(nodes[1][i] + " ");
+            writer.println(nodes[2][i]);
+        }
+        writer.close();
+        writer = new PrintWriter("ressources\\de." + timeStamp +".edges",
+                "UTF-8");
+        writer.println(edges.length);
+        for (int i = 0; i < edges.length; i++) {
+            writer.print(edges[1][i] + " ");
+            writer.print(edges[2][i] + " ");
+            writer.println(edges[3][i]);
+        }
+        writer.close();
+    }
+
 
 }

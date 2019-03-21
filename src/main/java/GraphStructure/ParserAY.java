@@ -4,10 +4,13 @@ import DTO.Highway;
 import Data.HighwayHandling;
 import Util.Distance;
 import de.topobyte.osm4j.core.model.iface.*;
+import de.topobyte.osm4j.core.model.util.OsmModelUtil;
 import de.topobyte.osm4j.pbf.seq.PbfIterator;
 import org.apache.tomcat.jni.Time;
 
 import java.io.*;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ParserAY {
@@ -20,7 +23,11 @@ public class ParserAY {
     private List<String> leisures = new ArrayList<>();
     private List<double[]> nodes;
     private PbfIterator pbfIterator;
+    List<String > pedWaysList = Arrays.asList("residential", "service", "living_street", "pedestrian", "track",
+            "footway", "bridleway", "steps", "path", "cycleway", "trunk", "primary", "secondary", "tertiary",
+            "unclassified", "trunk_link", "primary_link", "secondary_link", "tertiary_link", "road");
 
+    Set<String> legalStreetsPEDSTRIAN =   new HashSet<>(pedWaysList);
     public ParserAY() throws IOException {
 
         // List with all the node IDs we need in the edges
@@ -52,10 +59,18 @@ public class ParserAY {
         for (EntityContainer container : pbfIterator) {
             if (container.getType() == EntityType.Way) {
                 OsmWay osmWay = (OsmWay) container.getEntity();
-                if (isHighway(osmWay)) {
-                    // addRoute all notes to list of highways if absent
+                Map<String, String> WayTags = OsmModelUtil.getTagsAsMap(container.getEntity());
+                String highway = WayTags.get("highway");
+                String sidewalk = WayTags.get("sidewalk");
+                String motorroad = WayTags.get("motorroad");
+                if ((sidewalk != null && (sidewalk.equals("yes") || sidewalk.equals("right") || sidewalk.equals("left")
+                        || sidewalk.equals("both")))
+                        || ((motorroad == null || !motorroad.equals("yes")) && highway != null
+                        && legalStreetsPEDSTRIAN.contains(highway))) {
                     for (int i = 0; i < osmWay.getNumberOfNodes(); i++) {
-                        nodeLookup.put((long) osmWay.getNodeId(i), new double[]{});
+                        if (!nodeLookup.containsKey(osmWay.getNodeId(i))) {
+                            nodeLookup.put((long) osmWay.getNodeId(i), new double[]{});
+                        }
                     }
                 }
             }
@@ -158,7 +173,7 @@ public class ParserAY {
 
     /**
      * The entries in the node loopup map will be written into an ArrayList and sorted by their global node ID.
-     * The index of a node is now the local node ID and is written into the loopup map as value of the key which is
+     * The index of a node is now the local node ID and is written into the lookup map as value of the key which is
      * the global ID of the node.
      */
     private void sortNodes() {
@@ -180,25 +195,25 @@ public class ParserAY {
         Collections.sort(edges, new GlobalIdComparator());
     }
 
-
     private void writeIntoFile() throws IOException {
 
+        String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
         System.out.println("Writing ...");
 
         // Save data to file
-        PrintWriter writer = new PrintWriter("ressources\\de." + Time.now() + ".nodes",
+        PrintWriter writer = new PrintWriter("ressources\\de." + timeStamp + ".nodes",
                 "UTF-8");
         writer.println(nodes.size());
         for (int i = 0; i < nodes.size(); i++) {
             double[] node = nodes.get(i);
 
             writer.print(i + " ");
-            writer.print("" + (int) node[0] + " ");
+ /*           writer.print("" + (int) node[0] + " ");
             writer.print("" + (int) node[1] + " ");
             writer.println("" + (int) node[2]);
-
+*/
             // first entry is the global id and we already appended the index for the local id
-            for (int j = 1; j < node.length; j++) {
+            for (int j = 1; j < node.length - 1; j++) {
                 writer.print(node[j] + " ");
             }
             writer.println(" ");
@@ -206,7 +221,7 @@ public class ParserAY {
 
 
         writer.close();
-        writer = new PrintWriter("ressources\\de." + Time.now() +".edges",
+        writer = new PrintWriter("ressources\\de." + timeStamp +".edges",
                 "UTF-8");
         writer.println(edges.size());
 

@@ -1,3 +1,4 @@
+/*
 package GraphStructure;
 
 import java.io.FileInputStream;
@@ -18,7 +19,7 @@ import gnu.trove.list.TLongList;
 
 public class PBFParser {
 
-	static String path = "bw.osm.pbf";
+	static String path = "target.osm.pbf";
 
 	public void parse() throws IOException {
 
@@ -30,9 +31,10 @@ public class PBFParser {
 
 		// Count number of ways; needed for array creation.
 		int numWays = countWays(legalStreetsPEDSTRIAN);
+		System.out.println(String.format("Number of way counted: %s", numWays));
 		//int numWays = 124565264;
-
-		int[][] edges = new int[4][numWays];
+		int[][] edges = new int[numWays][4];
+		System.out.println("edges array allocated");
 		int edgesPos = 0;
 		int numberNodes = 0;
 		HashMap<Long, Integer> nodeMap = new HashMap<Long, Integer>();
@@ -63,15 +65,15 @@ public class PBFParser {
 							nodeMap.put(wayNodes.get(i), numberNodes);
 							numberNodes++;
 						}
-						edges[0][edgesPos] = edgesPos;
-						edges[1][edgesPos] = nodeMap.get(wayNodes.get(i - 1));
-						edges[2][edgesPos] = nodeMap.get(wayNodes.get(i));
+						edges[edgesPos][0]= edgesPos;
+						edges[edgesPos][1]= nodeMap.get(wayNodes.get(i - 1));
+						edges[edgesPos][2]= nodeMap.get(wayNodes.get(i));
 						edgesPos++;
 					}
 					for (int i = wayNodes.size() - 1; i > 0; i--) {
-						edges[0][edgesPos] = edgesPos;
-						edges[1][edgesPos] = nodeMap.get(wayNodes.get(i));
-						edges[2][edgesPos] = nodeMap.get(wayNodes.get(i - 1));
+						edges[edgesPos][0]= edgesPos;
+						edges[edgesPos][1]= nodeMap.get(wayNodes.get(i));
+						edges[edgesPos][2]= nodeMap.get(wayNodes.get(i - 1));
 						edgesPos++;
 					}
 				}
@@ -137,9 +139,10 @@ public class PBFParser {
 				"UTF-8");
 		writer.println(edges.length);
 		for (int i = 0; i < edges.length; i++) {
-			writer.print(edges[1][i] + " ");
-			writer.print(edges[2][i] + " ");
-			writer.println(edges[3][i]);
+			writer.print(edges[i][1] + " ");
+			writer.print(edges[i][2] + " ");
+			writer.print(edges[i][3]);
+			writer.println(" ");
 		}
 		writer.close();
 	}
@@ -159,12 +162,6 @@ public class PBFParser {
 				if (highway != null && legalStreets.contains(highway)) {
 					int NumberOfNodes = way.getNumberOfNodes();
 					numWays += (2 * NumberOfNodes) - 2;
-					System.out.println("ways added: " + numWays);
-					// numWays += NumberOfNodes - 1;
-					// String oneWay = WayTags.get("oneway");
-					// if (!highway.equals("motorway") && (oneWay == null || oneWay.equals("no"))) {
-					// numWays += NumberOfNodes - 1;
-					// }
 				}
 			}
 		}
@@ -228,4 +225,4 @@ public class PBFParser {
 		return Math.sqrt(x * x + y * y) * degLen;
 	}
 
-}
+}*/

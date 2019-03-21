@@ -25,13 +25,13 @@ public class StraysParser {
 
         List<String> pedWaysList = Arrays.asList("residential", "service", "living_street", "pedestrian", "track",
                 "footway", "bridleway", "steps", "path", "cycleway", "trunk", "primary", "secondary", "tertiary",
-                "unclassified", "trunk_link", "primary_link", "secondary_link", "tertiary_link", "road");
+                "trunk_link", "primary_link", "secondary_link", "tertiary_link", "road");
 
         Set<String> legalStreetsPEDSTRIAN = new HashSet<>(pedWaysList);
 
         // Count number of ways; needed for array creation.
-        // int numWays = countWays(legalStreetsPEDSTRIAN);
-        int numWays = 124565264;
+        int numWays = countWays(legalStreetsPEDSTRIAN);
+        //int numWays = 124565264;
         System.out.println(String.format("Number of way counted: %s", numWays));
 
 
