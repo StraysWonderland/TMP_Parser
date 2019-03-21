@@ -88,7 +88,7 @@ public class StraysParser {
                         numberNodes++;
                     }
 
-                    for (int i = 0; i < wayNodesSize; i++) {
+                    for (int i = 1; i < wayNodesSize; i++) {
                         if (!nodeMap.containsKey(wayNodes.get(i))) {
                             nodeMap.put(wayNodes.get(i), numberNodes);
                             numberNodes++;
