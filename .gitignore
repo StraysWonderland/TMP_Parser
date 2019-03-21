@@ -77,4 +77,7 @@ fabric.properties
 #pbf and osm files
 *.osm.pbf
 *.osm.*
+
+# old resources
+ressources/old
 # End of https://www.gitignore.io/api/intellij
