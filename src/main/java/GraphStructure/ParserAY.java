@@ -2,14 +2,11 @@ package GraphStructure;
 
 import DTO.Highway;
 import Data.HighwayHandling;
-import Util.Distance;
 import de.topobyte.osm4j.core.model.iface.*;
 import de.topobyte.osm4j.core.model.util.OsmModelUtil;
 import de.topobyte.osm4j.pbf.seq.PbfIterator;
-import org.apache.tomcat.jni.Time;
 
 import java.io.*;
-import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -69,7 +66,7 @@ public class ParserAY {
                         && legalStreetsPEDSTRIAN.contains(highway))) {
                     for (int i = 0; i < osmWay.getNumberOfNodes(); i++) {
                         if (!nodeLookup.containsKey(osmWay.getNodeId(i))) {
-                            nodeLookup.put((long) osmWay.getNodeId(i), new double[]{});
+                            nodeLookup.put(osmWay.getNodeId(i), new double[]{});
                         }
                     }
                 }
@@ -89,10 +86,10 @@ public class ParserAY {
             if (container.getType() == EntityType.Node) {
                 OsmNode osmNode = (OsmNode) container.getEntity();
                 if (nodeLookup.containsKey(osmNode.getId())) {
-                    nodeLookup.put((long) osmNode.getId(), new double[]{(double) osmNode.getId()
-                            , (double) osmNode.getLatitude()
-                            , (double) osmNode.getLongitude()
-                            , (double) Double.MAX_VALUE
+                    nodeLookup.put(osmNode.getId(), new double[]{(double) osmNode.getId()
+                            , osmNode.getLatitude()
+                            , osmNode.getLongitude()
+                            , Double.MAX_VALUE
                     });
                 }
             }
@@ -127,14 +124,14 @@ public class ParserAY {
     private void parseWayToEdges(OsmWay osmWay) {
         for (int i = 0; i < osmWay.getNumberOfNodes() - 1; i++) {
             double[] currentEdge = new double[5];
-            long lo = (long) osmWay.getNodeId(1);
+            long lo = osmWay.getNodeId(1);
             float[] edgeType = getMaxSpeed(osmWay);
-            currentEdge[0] = (double) nodeLookup.get(osmWay.getNodeId(i))[0];
-            currentEdge[1] = (double) nodeLookup.get(osmWay.getNodeId(i + 1))[0];
+            currentEdge[0] = nodeLookup.get(osmWay.getNodeId(i))[0];
+            currentEdge[1] = nodeLookup.get(osmWay.getNodeId(i + 1))[0];
             currentEdge[3] = (double) edgeType[0];
             currentEdge[4] = (double) edgeType[1];
 
-            double metricDistance = Distance.haversine(nodes.get((int) currentEdge[0])[1],
+            double metricDistance = haversine(nodes.get((int) currentEdge[0])[1],
                     nodes.get((int) currentEdge[0])[2],
                     nodes.get((int) currentEdge[1])[1],
                     nodes.get((int) currentEdge[1])[2]);
@@ -156,12 +153,12 @@ public class ParserAY {
         for (int i = osmWay.getNumberOfNodes() - 1; i > 0; i--) {
             double[] currentReverseEdge = new double[5];
             float[] edgeType = getMaxSpeed(osmWay);
-            currentReverseEdge[0] = (double) nodeLookup.get((long) osmWay.getNodeId(i))[0];
-            currentReverseEdge[1] = (double) nodeLookup.get((long) osmWay.getNodeId(i - 1))[0];
+            currentReverseEdge[0] = nodeLookup.get(osmWay.getNodeId(i))[0];
+            currentReverseEdge[1] = nodeLookup.get(osmWay.getNodeId(i - 1))[0];
             currentReverseEdge[3] = (double) edgeType[0];
             currentReverseEdge[4] = (double) edgeType[1];
 
-            double metricDistance = Distance.haversine(nodes.get((int) currentReverseEdge[0])[1],
+            double metricDistance = haversine(nodes.get((int) currentReverseEdge[0])[1],
                     nodes.get((int) currentReverseEdge[0])[2],
                     nodes.get((int) currentReverseEdge[1])[1],
                     nodes.get((int) currentReverseEdge[1])[2]);
@@ -182,7 +179,7 @@ public class ParserAY {
         for (int i = 0; i < nodes.size(); i++) {
             int localId = i;
             long globalId = (long) nodes.get(i)[0];
-            nodeLookup.put((long) globalId, new double[]{
+            nodeLookup.put(globalId, new double[]{
                     (double) localId
                     , (double) 0
                     , (double) 0
@@ -271,5 +268,23 @@ public class ParserAY {
             }
         }
         return new float[]{};
+    }
+
+
+    public static double euclideanDistance(double latNode1, double lngNode1, double latNode2, double lngNode2) {
+        double x = latNode1 - latNode2;
+        double y = (lngNode1 - lngNode2) * Math.cos(latNode2);
+        return Math.sqrt(x * x + y * y) * 110.25;
+    }
+
+    public static double haversine(double lat1, double lon1, double lat2, double lon2) {
+        double R = 6372.8; // In kilometers
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        lat1 = Math.toRadians(lat1);
+        lat2 = Math.toRadians(lat2);
+        double a = Math.pow(Math.sin(dLat / 2), 2) + Math.pow(Math.sin(dLon / 2), 2) * Math.cos(lat1) * Math.cos(lat2);
+        double c = 2 * Math.asin(Math.sqrt(a));
+        return R * c;
     }
 }

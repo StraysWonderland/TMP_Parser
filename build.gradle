@@ -1,12 +1,8 @@
 group 'com.StraysWonderland'
 version '1.0-SNAPSHOT'
 
-
-
 apply plugin: 'java'
 apply plugin: 'java-library-distribution'
-apply plugin: 'org.springframework.boot'
-apply plugin: 'io.spring.dependency-management'
 
 sourceCompatibility = 1.8
 buildscript {
@@ -16,9 +12,6 @@ buildscript {
     }
     repositories {
         mavenCentral()
-    }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
     }
 }
 
@@ -46,6 +39,5 @@ dependencies {
     compile 'de.topobyte:osm4j-pbf:0.0.10'
     compile 'de.topobyte:osm4j-tbo:0.0.10'
     compile 'de.topobyte:osm4j-geometry:0.0.15'
-    compile 'org.springframework.boot:spring-boot-starter-web:2.0.0.RELEASE'
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }

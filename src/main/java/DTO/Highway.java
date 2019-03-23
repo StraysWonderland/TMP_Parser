@@ -25,7 +25,7 @@ public enum Highway {
     footway("footway",22,15);
 
 
-    private String Name;
+    private final String Name;
     private int Type;
     private int MaxSpeed;
 

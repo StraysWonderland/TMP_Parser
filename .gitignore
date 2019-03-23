@@ -79,5 +79,7 @@ fabric.properties
 *.osm.*
 
 # old resources
-ressources/old
+/ressources/*
+/ressources/old/
+/ressources/old/**
 # End of https://www.gitignore.io/api/intellij

@@ -30,10 +30,10 @@ public class PBFParser {
 		Set<String> legalStreetsPEDSTRIAN =   new HashSet<>(pedWaysList);
 
 		// Count number of ways; needed for array creation.
-		int numWays = countWays(legalStreetsPEDSTRIAN);
-		System.out.println(String.format("Number of way counted: %s", numWays));
-		//int numWays = 124565264;
-		int[][] edges = new int[numWays][4];
+		int numberOfEdges = countWays(legalStreetsPEDSTRIAN);
+		System.out.println(String.format("Number of way counted: %s", numberOfEdges));
+		//int numberOfEdges = 124565264;
+		int[][] edges = new int[numberOfEdges][4];
 		System.out.println("edges array allocated");
 		int edgesPos = 0;
 		int numberNodes = 0;
@@ -148,7 +148,7 @@ public class PBFParser {
 	}
 
 	private static int countWays(Set<String> legalStreets) throws IOException {
-		int numWays = 0;
+		int numberOfEdges = 0;
 		// Open PBF file.
 		InputStream input = new FileInputStream(path);
 		// Iterate over PBF file and count number of edges.
@@ -161,12 +161,12 @@ public class PBFParser {
 				String highway = WayTags.get("highway");
 				if (highway != null && legalStreets.contains(highway)) {
 					int NumberOfNodes = way.getNumberOfNodes();
-					numWays += (2 * NumberOfNodes) - 2;
+					numberOfEdges += (2 * NumberOfNodes) - 2;
 				}
 			}
 		}
 		input.close();
-		return numWays;
+		return numberOfEdges;
 	}
 
 	private static int getSpeedLimit(String maxspeedTag, String highway) {

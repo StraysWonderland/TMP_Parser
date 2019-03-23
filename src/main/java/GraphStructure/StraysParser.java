@@ -8,48 +8,130 @@ import de.topobyte.osm4j.core.model.util.OsmModelUtil;
 import de.topobyte.osm4j.pbf.seq.PbfIterator;
 import gnu.trove.list.TLongList;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.*;
 
 public class StraysParser {
 
     static String path = "target.osm.pbf";
 
+    List<String> pedWaysList = Arrays.asList("residential", "service", "living_street", "pedestrian", "track",
+            "footway", "bridleway", "steps", "path", "cycleway", "trunk", "primary", "secondary", "tertiary",
+            "trunk_link", "primary_link", "secondary_link", "tertiary_link", "road");
+
+    Set<String> legalStreetsPEDSTRIAN = new HashSet<>(pedWaysList);
+    int[] edgeSource;
+    int[] edgeTarget;
+    int[] edgeDistance;
+    int numberOfEdges;
+    HashMap<Long, Integer> nodeMap;
+
+    InputStream input;
+    OsmIterator iterator;
+
+    double[][] nodes;
+
     public void parse(String filePath) throws IOException {
 
-        this.path = filePath;
-
-        List<String> pedWaysList = Arrays.asList("residential", "service", "living_street", "pedestrian", "track",
-                "footway", "bridleway", "steps", "path", "cycleway", "trunk", "primary", "secondary", "tertiary",
-                "trunk_link", "primary_link", "secondary_link", "tertiary_link", "road");
-
-        Set<String> legalStreetsPEDSTRIAN = new HashSet<>(pedWaysList);
+        path = filePath;
 
         System.out.println("start counting desirable edges");
         // Count number of ways; needed for array creation.
+        numberOfEdges = countWays(legalStreetsPEDSTRIAN);
+        //int numberOfEdges = 124565264;
+        System.out.println(String.format("Number of ways counted: %s", numberOfEdges));
 
-        int numWays = countWays(legalStreetsPEDSTRIAN);
-        //int numWays = 124565264;
-        System.out.println(String.format("Number of way counted: %s", numWays));
-
-
-        // int[][] edges = new int[numWays][4];
-
-        int[] edgeSource = new int[numWays];
-        int[] edgeTarget = new int[numWays];
-        int[] edgeDistance = new int[numWays];
+        edgeSource = new int[numberOfEdges];
+        edgeTarget = new int[numberOfEdges];
+        edgeDistance = new int[numberOfEdges];
 
         System.out.println("edges array allocated");
 
-        HashMap<Long, Integer> nodeMap = new HashMap<>();
+        nodeMap = new HashMap<>();
 
         // Reset iterator
-        InputStream input = new FileInputStream(path);
-        OsmIterator iterator = new PbfIterator(input, true);
+        input = new FileInputStream(path);
+        iterator = new PbfIterator(input, true);
+        retrieveDesiredEdgesAndNodes();
+        input.close();
 
+        System.out.println(String.format("added %d nodes", nodeMap.size()));
+        nodes = new double[3][nodeMap.size()];
+        System.out.println("Created nodes array");
+
+        // Reset iterator
+        input = new FileInputStream(path);
+        iterator = new PbfIterator(input, true);
+
+        // Get node information.
+        for (EntityContainer container : iterator) {
+            String type = container.getType().toString();
+            if (type.equals("Node")) {
+                OsmNode node = (OsmNode) container.getEntity();
+                long ID = node.getId();
+                if (nodeMap.containsKey(ID)) {
+                    int pos = nodeMap.get(ID);
+                    nodes[0][pos] = pos;
+                    nodes[1][pos] = node.getLatitude();
+                    nodes[2][pos] = node.getLongitude();
+                }
+            }
+        }
+
+        System.out.println("Filled nodes array with data");
+
+        // Calculate distance for each edge and then calculate the time needed to travel
+        // along this edge.
+        for (int i = 0; i < numberOfEdges; i++) {
+            double startNodeLat = nodes[1][edgeSource[i]];
+            double startNodeLng = nodes[2][edgeSource[i]];
+            double destNodeLat = nodes[1][edgeTarget[i]];
+            double destNodeLng = nodes[2][edgeTarget[i]];
+
+            // Replace speed limit by weight of edge.
+            double dist = euclideanDist(startNodeLat, startNodeLng, destNodeLat, destNodeLng);
+            edgeDistance[i] = (int) (dist * 10000);
+        }
+
+        System.out.println("Filled edges array with distances");
+
+        Integer[] ids = new Integer[numberOfEdges];
+        for (int i = 0; i < numberOfEdges; i++)
+            ids[i] = i;
+        Arrays.sort(ids, Comparator.comparingInt(o -> edgeSource[o]));
+
+        System.out.println("sorted edges array");
+
+        WriteNodesFile();
+        WriteEdgesFile(ids);
+
+        System.out.println("finished writing to file");
+    }
+
+
+    private static int countWays(Set<String> legalStreets) throws IOException {
+        int numWays = 0;
+        // Open PBF file.
+        InputStream input = new FileInputStream(path);
+        // Iterate over PBF file and count number of edges.
+        OsmIterator iterator = new PbfIterator(input, true);
+        for (EntityContainer container : iterator) {
+            String type = container.getType().toString();
+            if (type.equals("Way")) {
+                Map<String, String> WayTags = OsmModelUtil.getTagsAsMap(container.getEntity());
+                OsmWay way = (OsmWay) container.getEntity();
+                String highway = WayTags.get("highway");
+                if (highway != null && legalStreets.contains(highway)) {
+                    int NumberOfNodes = way.getNumberOfNodes();
+                    numWays += (2 * NumberOfNodes) - 2;
+                }
+            }
+        }
+        input.close();
+        return numWays;
+    }
+
+    private void retrieveDesiredEdgesAndNodes() {
         String highway;
         String sidewalk;
         String motorroad;
@@ -58,7 +140,6 @@ public class StraysParser {
         int wayNodesSize;
         int currentEdgeIndex = 0;
         int numberNodes = 0;
-
 
         // Create edges and store node IDs
         for (EntityContainer container : iterator) {
@@ -105,55 +186,23 @@ public class StraysParser {
                 }
             }
         }
+    }
 
-        System.out.println(String.format("added %d nodes", nodeMap.size()));
-        double[][] nodes = new double[3][nodeMap.size()];
-        System.out.println("Created nodes array");
-
-        // Reset iterator
-        input.close();
-        input = new FileInputStream(path);
-        iterator = new PbfIterator(input, true);
-
-        // Get node information.
-        for (EntityContainer container : iterator) {
-            String type = container.getType().toString();
-            if (type.equals("Node")) {
-                OsmNode node = (OsmNode) container.getEntity();
-                long ID = node.getId();
-                if (nodeMap.containsKey(ID)) {
-                    int pos = nodeMap.get(ID);
-                    nodes[0][pos] = pos;
-                    nodes[1][pos] = node.getLatitude();
-                    nodes[2][pos] = node.getLongitude();
-                }
-            }
+    private void WriteEdgesFile(Integer[] ids) throws FileNotFoundException, UnsupportedEncodingException {
+        PrintWriter writer;
+        writer = new PrintWriter("ressources\\de_edges_stray.fs",
+                "UTF-8");
+        writer.println(edgeSource.length);
+        for (int i = 0; i < numberOfEdges; i++) {
+            writer.print(edgeSource[ids[i]] + " ");
+            writer.print(edgeTarget[ids[i]] + " ");
+            writer.print(edgeDistance[ids[i]]);
+            writer.println(" ");
         }
+        writer.close();
+    }
 
-        System.out.println("Filled nodes array with data");
-
-        // Calculate distance for each edge and then calculate the time needed to travel
-        // along this edge.
-        for (int i = 0; i < numWays; i++) {
-            double startNodeLat = nodes[1][edgeSource[i]];
-            double startNodeLng = nodes[2][edgeSource[i]];
-            double destNodeLat = nodes[1][edgeTarget[i]];
-            double destNodeLng = nodes[2][edgeTarget[i]];
-
-            // Replace speed limit by weight of edge.
-            double dist = euclideanDist(startNodeLat, startNodeLng, destNodeLat, destNodeLng);
-            edgeDistance[i] = (int) (dist * 10000);
-        }
-
-        System.out.println("Filled edges array with distances");
-
-        Integer[] ids = new Integer[numWays];
-        for (int i = 0; i < numWays; i++)
-            ids[i] = i;
-        Arrays.sort(ids, Comparator.comparingInt(o -> edgeSource[o]));
-
-        System.out.println("sorted edges array");
-
+    private void WriteNodesFile() throws FileNotFoundException, UnsupportedEncodingException {
         // Save data to file
         PrintWriter writer = new PrintWriter("ressources\\de_nodes_stray.fs",
                 "UTF-8");
@@ -164,42 +213,6 @@ public class StraysParser {
             writer.println(nodes[2][i]);
         }
         writer.close();
-
-        // save edges to file
-        writer = new PrintWriter("ressources\\de_edges_stray.fs",
-                "UTF-8");
-        writer.println(edgeSource.length);
-        for (int i = 0; i < numWays; i++) {
-            writer.print(edgeSource[ids[i]] + " ");
-            writer.print(edgeTarget[ids[i]] + " ");
-            writer.print(edgeDistance[ids[i]]);
-            writer.println(" ");
-        }
-        writer.close();
-
-        System.out.println("finished writing to file");
-    }
-
-    private static int countWays(Set<String> legalStreets) throws IOException {
-        int numWays = 0;
-        // Open PBF file.
-        InputStream input = new FileInputStream(path);
-        // Iterate over PBF file and count number of edges.
-        OsmIterator iterator = new PbfIterator(input, true);
-        for (EntityContainer container : iterator) {
-            String type = container.getType().toString();
-            if (type.equals("Way")) {
-                Map<String, String> WayTags = OsmModelUtil.getTagsAsMap(container.getEntity());
-                OsmWay way = (OsmWay) container.getEntity();
-                String highway = WayTags.get("highway");
-                if (highway != null && legalStreets.contains(highway)) {
-                    int NumberOfNodes = way.getNumberOfNodes();
-                    numWays += (2 * NumberOfNodes) - 2;
-                }
-            }
-        }
-        input.close();
-        return numWays;
     }
 
     public static class ItemComparator implements Comparator<double[]> {
