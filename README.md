@@ -1,4 +1,7 @@
 # TMP_Parser
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b58f4e4aea524b93ad1df36b11628ac5)](https://app.codacy.com/app/cagri.c.tasci/TMP_Parser?utm_source=github.com&utm_medium=referral&utm_content=StraysWonderland/TMP_Parser&utm_campaign=Badge_Grade_Dashboard)
+
 To run parser, place a pbf file in the root directory.
 Run the jar file preferably by running the command:
 
