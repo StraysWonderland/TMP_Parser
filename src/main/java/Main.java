@@ -5,16 +5,11 @@ import java.io.IOException;
 
 public class Main {
 
+    private static String path = "bw.osm.pbf";
+
     public static void main(String[] args) {
-/*        GraphParserPBF graphParserPBF = new GraphParserPBF();
-        graphParserPBF.parseFromPbf();*/
-
-       // PBFParser parser = new PBFParser();
-
-        String path = "bw.osm.pbf";
-
         try {
-            if(args[0] != null)
+            if (args[0] != null)
                 path = args[0];
 
             StraysParser parser = new StraysParser();
@@ -22,13 +17,5 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
-/*        try {
-            ParserAY parserAY = new ParserAY();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
     }
-
 }

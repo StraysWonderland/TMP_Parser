@@ -13,23 +13,24 @@ import java.util.*;
 
 public class StraysParser {
 
-    static String path = "target.osm.pbf";
+    private static String path = "target.osm.pbf";
 
-    List<String> pedWaysList = Arrays.asList("residential", "service", "living_street", "pedestrian", "track",
+    private Integer[] ids;
+    private int[] edgeSource;
+    private int[] edgeTarget;
+    private int[] edgeDistance;
+    private int numberOfEdges;
+
+    private HashMap<Long, Integer> nodeMap;
+    private double[][] nodes;
+
+    private InputStream input;
+    private OsmIterator iterator;
+
+    private static List<String> pedWaysList = Arrays.asList("residential", "service", "living_street", "pedestrian", "track",
             "footway", "bridleway", "steps", "path", "cycleway", "trunk", "primary", "secondary", "tertiary",
             "trunk_link", "primary_link", "secondary_link", "tertiary_link", "road");
-
-    Set<String> legalStreetsPEDSTRIAN = new HashSet<>(pedWaysList);
-    int[] edgeSource;
-    int[] edgeTarget;
-    int[] edgeDistance;
-    int numberOfEdges;
-    HashMap<Long, Integer> nodeMap;
-
-    InputStream input;
-    OsmIterator iterator;
-
-    double[][] nodes;
+    private static Set<String> legalStreetsPEDSTRIAN = new HashSet<>(pedWaysList);
 
     public void parse(String filePath) throws IOException {
 
@@ -37,7 +38,7 @@ public class StraysParser {
 
         System.out.println("start counting desirable edges");
         // Count number of ways; needed for array creation.
-        numberOfEdges = countWays(legalStreetsPEDSTRIAN);
+        numberOfEdges = countDesirableEdges();
         //int numberOfEdges = 124565264;
         System.out.println(String.format("Number of ways counted: %s", numberOfEdges));
 
@@ -49,7 +50,7 @@ public class StraysParser {
 
         nodeMap = new HashMap<>();
 
-        // Reset iterator
+        // Reset iterator and retrieve desired edges and nodes
         input = new FileInputStream(path);
         iterator = new PbfIterator(input, true);
         retrieveDesiredEdgesAndNodes();
@@ -59,14 +60,14 @@ public class StraysParser {
         nodes = new double[3][nodeMap.size()];
         System.out.println("Created nodes array");
 
-        // Reset iterator
+        // Reset iterator and get lat and lng for all nodes
         input = new FileInputStream(path);
         iterator = new PbfIterator(input, true);
 
         // Get node information.
         for (EntityContainer container : iterator) {
             String type = container.getType().toString();
-            if (type.equals("Node")) {
+            if ("Node".equals(type)) {
                 OsmNode node = (OsmNode) container.getEntity();
                 long ID = node.getId();
                 if (nodeMap.containsKey(ID)) {
@@ -95,21 +96,26 @@ public class StraysParser {
 
         System.out.println("Filled edges array with distances");
 
-        Integer[] ids = new Integer[numberOfEdges];
+        // create index Array to refer to original edges and sort edges array
+        ids = new Integer[numberOfEdges];
         for (int i = 0; i < numberOfEdges; i++)
             ids[i] = i;
         Arrays.sort(ids, Comparator.comparingInt(o -> edgeSource[o]));
 
         System.out.println("sorted edges array");
 
-        WriteNodesFile();
-        WriteEdgesFile(ids);
+        writeNodesFile();
+        writeEdgesFile();
 
         System.out.println("finished writing to file");
     }
 
 
-    private static int countWays(Set<String> legalStreets) throws IOException {
+    /**
+     * @return Number of desirable edges
+     * @throws IOException
+     */
+    private static int countDesirableEdges() throws IOException {
         int numWays = 0;
         // Open PBF file.
         InputStream input = new FileInputStream(path);
@@ -121,7 +127,7 @@ public class StraysParser {
                 Map<String, String> WayTags = OsmModelUtil.getTagsAsMap(container.getEntity());
                 OsmWay way = (OsmWay) container.getEntity();
                 String highway = WayTags.get("highway");
-                if (highway != null && legalStreets.contains(highway)) {
+                if (highway != null && legalStreetsPEDSTRIAN.contains(highway)) {
                     int NumberOfNodes = way.getNumberOfNodes();
                     numWays += (2 * NumberOfNodes) - 2;
                 }
@@ -131,6 +137,11 @@ public class StraysParser {
         return numWays;
     }
 
+    /**
+     * Retrieves the desired edges and corresponding nodes from the pbf file.
+     * stores edge data in edge arrays
+     * stores id of corresponding nodes in nodeMap
+     */
     private void retrieveDesiredEdgesAndNodes() {
         String highway;
         String sidewalk;
@@ -144,8 +155,7 @@ public class StraysParser {
         // Create edges and store node IDs
         for (EntityContainer container : iterator) {
             String type = container.getType().toString();
-            if (type.equals("Way")) {
-
+            if ("Way".equals(type)) {
                 WayTags = OsmModelUtil.getTagsAsMap(container.getEntity());
 
                 highway = WayTags.get("highway");
@@ -188,9 +198,15 @@ public class StraysParser {
         }
     }
 
-    private void WriteEdgesFile(Integer[] ids) throws FileNotFoundException, UnsupportedEncodingException {
+    /**
+     * Write Edges into a custom txt-file
+     *
+     * @throws FileNotFoundException
+     * @throws UnsupportedEncodingException
+     */
+    private void writeEdgesFile() throws FileNotFoundException, UnsupportedEncodingException {
         PrintWriter writer;
-        writer = new PrintWriter("ressources\\de_edges_stray.fs",
+        writer = new PrintWriter("ressources\\de.osm.edges",
                 "UTF-8");
         writer.println(edgeSource.length);
         for (int i = 0; i < numberOfEdges; i++) {
@@ -202,9 +218,15 @@ public class StraysParser {
         writer.close();
     }
 
-    private void WriteNodesFile() throws FileNotFoundException, UnsupportedEncodingException {
+    /**
+     * Write Nodes into a custom txt.file
+     *
+     * @throws FileNotFoundException
+     * @throws UnsupportedEncodingException
+     */
+    private void writeNodesFile() throws FileNotFoundException, UnsupportedEncodingException {
         // Save data to file
-        PrintWriter writer = new PrintWriter("ressources\\de_nodes_stray.fs",
+        PrintWriter writer = new PrintWriter("ressources\\de.osm.nodes",
                 "UTF-8");
         writer.println(nodes[0].length);
         for (int i = 0; i < nodes[0].length; i++) {
@@ -215,13 +237,14 @@ public class StraysParser {
         writer.close();
     }
 
-    public static class ItemComparator implements Comparator<double[]> {
-        @Override
-        public int compare(double[] o1, double[] o2) {
-            return Double.compare(o1[0], o2[0]);
-        }
-    }
 
+    /**
+     * @param node1_lat latitude of start node
+     * @param node1_lng longitude of start node
+     * @param node2_lat latitude of target node
+     * @param node2_lng longitude of target node
+     * @return distance between two nodes
+     */
     private static double euclideanDist(double node1_lat, double node1_lng, double node2_lat, double node2_lng) {
         double degLen = 110.25;
         double x = node1_lat - node2_lat;
