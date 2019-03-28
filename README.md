@@ -7,9 +7,9 @@ Run the jar file preferably by running the command:
 
     java -jar -Xmx=<AllocatedRAM> <JARNAME> <path to or name of pfb file>
 
-- \<JARNAME> should be TMPParser.jar, lying in the root of the directory,
-- \<name of pbf file> should usually be "target.osm.pbf" or the path to the file, if it is placed somewhere else
-- \<allocatedRam> shout at least be 16G
+-  \<JARNAME> should be TMPParser.jar, lying in the root of the directory,
+-  \<name of pbf file> should usually be "target.osm.pbf" or the path to the file, if it is placed somewhere else
+-  \<allocatedRam> shout at least be 16G
 
 Example:
 
