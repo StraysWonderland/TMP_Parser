@@ -2,7 +2,7 @@
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/b58f4e4aea524b93ad1df36b11628ac5)](https://app.codacy.com/app/cagri.c.tasci/TMP_Parser?utm_source=github.com&utm_medium=referral&utm_content=StraysWonderland/TMP_Parser&utm_campaign=Badge_Grade_Dashboard)
 
-This repo serves as preprocessing application to (the travelling misanthropist - application)[https://github.com/StraysWonderland/TravellingMisanthropistProblem], which takes any osm graph file in pbf format and transforms it into a custom format, which can be taken as input for the TMP application.
+This repo serves as preprocessing application to ![the travelling misanthropist - application](https://github.com/StraysWonderland/TravellingMisanthropistProblem), which takes any osm graph file in pbf format and transforms it into a custom format, which can be taken as input for the TMP application.
 
 To run parser, place a pbf file in the root directory.
 Run the jar file preferably by running the command:
